@@ -3,11 +3,11 @@ import { createRoot } from "react-dom/client";
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import AppRecorder from "./recorder/app-recorder";
+import AppIot from "./iot/iotApp";
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
-      <AppRecorder />
+      <AppIot />
     </BrowserRouter>
   </StrictMode>,
 );

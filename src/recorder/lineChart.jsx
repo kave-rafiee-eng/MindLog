@@ -5,17 +5,6 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import { LineChart } from "@mui/x-charts/LineChart";
 
 const margin = { right: 24 };
-const uData = [4000, 3000, 2000, 2780, 1890, 2390, 3490];
-const pData = [2400, 1398, 9800, 3908, 4800, 3800, 4300];
-const xLabels = [
-  "Page A",
-  "Page B",
-  "Page C",
-  "Page D",
-  "Page E",
-  "Page F",
-  "Page G",
-];
 
 const highlightScope = {
   highlight: "item",
@@ -53,7 +42,7 @@ function CustomLine(props) {
   );
 }
 
-export default function SimpleLineChart({ chartData }) {
+export default function SimpleLineChart({ chartData, period }) {
   const [showInteractionArea, setShowInteractionArea] = React.useState(true);
 
   //------------------
@@ -63,7 +52,7 @@ export default function SimpleLineChart({ chartData }) {
 
   let dateNow = new Date();
 
-  for (let i = 7; i >= 0; i--) {
+  for (let i = period; i >= 0; i--) {
     let currentDate = dateNow.getTime() - i * 24 * 60 * 60 * 1000;
     allDates.push(
       new Date(currentDate).toLocaleDateString("fa-IR-u-ca-persian"),
@@ -83,7 +72,9 @@ export default function SimpleLineChart({ chartData }) {
 
   const settings = {
     height: 300,
-    series: [{ data: allValues, label: "value", highlightScope }],
+    series: [
+      { data: allValues, label: "value", highlightScope, showMark: false },
+    ],
     xAxis: [{ scaleType: "point", data: allDates }],
     yAxis: [{ width: 50 }],
     margin,
@@ -96,7 +87,7 @@ export default function SimpleLineChart({ chartData }) {
         "& .interaction-area": showInteractionArea
           ? {
               stroke: "lightgray",
-              strokeOpacity: 0.3,
+              strokeOpacity: 0.1,
             }
           : {},
       }}

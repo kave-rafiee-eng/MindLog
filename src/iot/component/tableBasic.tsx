@@ -1,0 +1,136 @@
+import Button from "@mui/material/Button";
+import DeleteIcon from "@mui/icons-material/Delete";
+import * as React from "react";
+import Paper from "@mui/material/Paper";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TablePagination from "@mui/material/TablePagination";
+import TableRow from "@mui/material/TableRow";
+
+import { ReactNode } from "react";
+
+type ColumnType<RowType = any> = {
+  id: keyof RowType;
+  label: string;
+  minWidth?: number;
+  align?: "left" | "right" | "center";
+  render?: (row: RowType) => ReactNode;
+  format?: (value: any) => string;
+};
+
+export type TableBasicProps<RowType> = {
+  columns: ColumnType<RowType>[];
+  tableData: RowType[];
+};
+
+export function TableBasic<RowType extends { id: number | string }>({
+  columns,
+  tableData,
+}: TableBasicProps<RowType>) {
+  const rows = [...tableData];
+
+  React.useEffect(() => {
+    console.log("TableBasic---------------");
+  }, []);
+
+  return (
+    <TableContainer component={Paper} sx={{ maxHeight: 440 }}>
+      <Table stickyHeader aria-label="simple table">
+        <TableHead>
+          <TableRow>
+            {columns.map((column) => (
+              <TableCell
+                key={column.id as string}
+                align={column.align}
+                style={{ minWidth: column.minWidth }}
+                sx={{
+                  textAlign: "center",
+                  backgroundColor: "gray",
+                  color: "white",
+                }}
+              >
+                <h3>{column.label}</h3>
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
+              {columns.map((column) => {
+                const value = row[column.id as keyof RowType];
+                return (
+                  <TableCell
+                    key={column.id as string}
+                    align={column.align}
+                    sx={{ textAlign: "center" }}
+                  >
+                    {column.render
+                      ? column.render(row)
+                      : column.format
+                        ? column.format(value)
+                        : (value as React.ReactNode)}
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+/*
+  const columns = [
+    {
+      id: "id",
+      label: "id",
+      minWidth: 170,
+      minWidth: 170,
+      align: "right",
+      render: (row) => (
+        <Button
+          variant="outlined"
+          startIcon={<DeleteIcon />}
+          onClick={() => {
+            deleteId(row.id);
+          }}
+        >
+          Delete
+        </Button>
+      ),
+    },
+    {
+      id: "Date",
+      label: "Date",
+      minWidth: 170,
+      minWidth: 170,
+      align: "right",
+      format: (value) => {
+        if (!value) return "";
+
+        const date = new Date(value);
+
+        return new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn", {
+          timeZone: "Asia/Tehran",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(date);
+      },
+    },
+    {
+      id: "value",
+      label: "value",
+      minWidth: 170,
+      minWidth: 170,
+      align: "right",
+    },
+  ];
+  */

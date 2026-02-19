@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-function Delay(ms) {
+function Delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -11,7 +11,60 @@ const PCI_TYPE = {
   TYPE_SET_W: 2,
 };
 
-export const useSocketStore = create((set, get) => ({
+type Listener = (data: any) => void;
+
+type registerAddValueType = {
+  add: number;
+  value: number;
+};
+type reciveDataType = {
+  pid: number;
+  add: number;
+  type: number;
+  numOfRegister: number;
+  registers: registerAddValueType[];
+};
+type CommModalType = {
+  open: boolean;
+  severity: "success" | "error" | "warning" | "info";
+  title: string;
+};
+
+type socketStorType = {
+  socket: WebSocket | null;
+  connected: boolean;
+  listeners: Listener[];
+
+  connect: () => void;
+  send: (data: Uint8Array) => void;
+  subscribe: (callback: Listener) => () => void;
+
+  SetCommModalState(
+    set: React.Dispatch<React.SetStateAction<CommModalType>>,
+  ): void;
+
+  SetCommModal: React.Dispatch<React.SetStateAction<CommModalType>> | null;
+
+  _PCI_send(
+    pid: number,
+    bytes: Uint8Array,
+    enModal: boolean,
+  ): Promise<reciveDataType>;
+
+  PCI_Setting: (
+    addresses: number[],
+    newValues: number[],
+    readOrWrite: boolean,
+    enModal: boolean,
+  ) => Promise<reciveDataType>;
+
+  _GetPid(): number;
+  //  PCI_Setting: async (addresses, newValues, readOrWrite, enModal)
+  /*disconnect: () => void;
+  addListener: (fn: Listener) => void;*/
+};
+//_PCI_send: (pid, bytes, enModal)
+export const useSocketStore = create<socketStorType>((set, get) => ({
   SetCommModal: null,
   socket: null,
   connected: false,
@@ -20,6 +73,7 @@ export const useSocketStore = create((set, get) => ({
   connect: () => {
     if (get().socket) return;
 
+    //const ws = new WebSocket("ws://192.168.137.1:3001");
     const ws = new WebSocket("ws://localhost:3001");
     ws.binaryType = "arraybuffer";
     ws.onopen = () => {
@@ -72,7 +126,7 @@ export const useSocketStore = create((set, get) => ({
     get().SetCommModal = set;
   },
 
-  _waitToGetData: (TimeOut) => {
+  /*_waitToGetData: (TimeOut) => {
     return new Promise((resolve, reject) => {
       const unsubscribe = get().subscribe((data) => {
         console.log("message received:", data);
@@ -85,7 +139,7 @@ export const useSocketStore = create((set, get) => ({
         reject("timeout");
       }, TimeOut);
     });
-  },
+  },*/
 
   _GetPid: () => {
     return Math.floor(Math.random() * 255);
@@ -99,37 +153,65 @@ export const useSocketStore = create((set, get) => ({
 
       const unsubscribe = get().subscribe((data) => {
         const resArray = new Uint8Array(data);
+        //console.log(resArray);
         if (resArray.length >= 10 && resArray[0] === pid && !resolved) {
-          resolved = true;
-          unsubscribe();
-          const reciveData = {
-            pid: resArray[0],
-            add: resArray[1],
-            type: resArray[2],
-            numOfRegister: resArray[2],
-            registerAdd: resArray[4] * 256 + resArray[5],
-            registerValue: resArray[6] * 256 + resArray[7],
-            crcL: resArray[8],
-            crcH: resArray[9],
-          };
-          resolve(reciveData);
+          let reciveCrc: number =
+            resArray[resArray[3] * 4 + 4] * 256 + resArray[resArray[3] * 4 + 5];
+
+          let crc: number = MODBUS_CRC16_v1(
+            resArray.slice(0, resArray[3] * 4 + 4),
+          );
+
+          if (reciveCrc === crc) {
+            console.log("CRC Ok");
+            resolved = true;
+            unsubscribe();
+            const reciveData: reciveDataType = {
+              pid: resArray[0],
+              add: resArray[1],
+              type: resArray[2],
+              numOfRegister: resArray[3],
+              registers: Array.from(
+                { length: resArray[3] },
+                (): registerAddValueType => ({
+                  add: 0,
+                  value: 0,
+                }),
+              ),
+            };
+
+            for (let i = 0; i < reciveData.numOfRegister; i++) {
+              reciveData.registers[i].add =
+                resArray[i * 4 + 4] * 256 + resArray[i * 4 + 5];
+              reciveData.registers[i].value =
+                resArray[i * 4 + 6] * 256 + resArray[i * 4 + 7];
+            }
+            resolve(reciveData);
+          } else {
+            console.log(resArray);
+            console.log(`Crc Failed R: ${reciveCrc} / ${crc} `);
+          }
+        } else {
+          console.log(resArray);
+          console.log(`Data Format Wrong : ${resArray.length} `);
         }
       });
 
       (async () => {
         for (let i = 0; i < numOfTry && !resolved; i++) {
           console.log(`PCI Send pid :${pid} / try :${i}`);
-          if (i > 0)
-            if (enModal) {
-              get().SetCommModal((prev) => {
-                return {
-                  ...prev,
-                  open: true,
-                  severity: "warning",
-                  title: `communication failure try ${i}`,
-                };
-              });
+
+          if (i > 0) {
+            const setModal = get().SetCommModal;
+            if (enModal && setModal) {
+              setModal((prev) => ({
+                ...prev,
+                open: true,
+                severity: "warning",
+                title: `communication failure try ${i}`,
+              }));
             }
+          }
           get().send(bytes);
           await Delay(1000);
         }
@@ -173,27 +255,33 @@ export const useSocketStore = create((set, get) => ({
       }
     }
 
-    const crc = MODBUS_CRC16_v1(dataArr);
+    const crc = MODBUS_CRC16_v1(new Uint8Array(dataArr));
     const bytes = new Uint8Array([...dataArr, (crc >> 8) & 0xff, crc & 0xff]);
 
     const colseingModal = () => {
-      get().SetCommModal((prev) => {
-        return {
-          ...prev,
-          open: false,
-        };
-      });
+      const setModal = get().SetCommModal;
+      if (enModal && setModal) {
+        setModal((prev) => {
+          return {
+            ...prev,
+            open: false,
+          };
+        });
+      }
     };
 
     const openingModalError = () => {
-      get().SetCommModal((prev) => {
-        return {
-          ...prev,
-          open: true,
-          severity: "error",
-          title: `No response from device `,
-        };
-      });
+      const setModal = get().SetCommModal;
+      if (enModal && setModal) {
+        setModal((prev) => {
+          return {
+            ...prev,
+            open: true,
+            severity: "error",
+            title: `No response from device `,
+          };
+        });
+      }
     };
 
     try {
@@ -207,7 +295,7 @@ export const useSocketStore = create((set, get) => ({
   },
 }));
 
-function MODBUS_CRC16_v1(buf) {
+function MODBUS_CRC16_v1(buf: Uint8Array): number {
   let crc = 0xffff;
   for (let i = 0; i < buf.length; i++) {
     crc ^= buf[i];

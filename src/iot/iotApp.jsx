@@ -16,7 +16,15 @@ import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
+import MiniDrawer from "./miniDrawer";
+import MyAppBar from "./component/AppBar";
+import Typography from "@mui/material/Typography";
+
+import { useTranslation } from "react-i18next";
+
 function AppIot() {
+  const { t } = useTranslation();
+
   const connect = useSocketStore((s) => s.connect);
   const connected = useSocketStore((s) => s.connected);
   const SetCommModalState = useSocketStore((s) => s.SetCommModalState);
@@ -33,6 +41,8 @@ function AppIot() {
     connect();
     //PciSend();
   });
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
     <>
@@ -67,13 +77,34 @@ function AppIot() {
         body={"please Wait"}
       />
 
-      {<IotNavBar />}
-      <Routes>
-        <Route path="/" element={<IotHome />} />
-        <Route path="/test" element={<NumberInput />} />
-      </Routes>
+      <Box sx={{ display: "flex" }}>
+        <MyAppBar
+          handleDrawerOpen={() => setDrawerOpen(true)}
+          open={drawerOpen}
+        />
+        <MiniDrawer setOpen={setDrawerOpen} open={drawerOpen} />
+
+        <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+          <Typography sx={{ marginBottom: 2 }}>
+            {t("welcomeMess", { user: "kave" })}
+          </Typography>
+
+          <Routes>
+            <Route path="/" element={<IotHome />} />
+            <Route path="/setting" element={<IotHome />} />
+            <Route path="/monitoring" element={<IotHome />} />
+          </Routes>
+        </Box>
+      </Box>
     </>
   );
 }
 
 export default AppIot;
+
+/*
+      {<IotNavBar />}
+      <Routes>
+        <Route path="/" element={<IotHome />} />
+        <Route path="/test" element={<MiniDrawer />} />
+      </Routes>*/

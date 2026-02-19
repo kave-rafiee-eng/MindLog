@@ -1,16 +1,23 @@
 import Grid from "@mui/material/Grid";
-import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import CardContent from "@mui/material/CardContent";
 import CardActions from "@mui/material/CardActions";
-import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
+import React from "react";
 
-export default function CardSetting({ title, Child }) {
+type CardSettingProps = {
+  title: string;
+  Child: React.ComponentType;
+};
+
+export default function CardSetting({ title, Child }: CardSettingProps) {
+  React.useEffect(() => {
+    console.log("CardSetting---------------");
+  }, []);
   return (
-    <Grid container direction={"column"} spacing={1}>
-      <Grid item size={{ md: 12, sm: 12 }}>
+    <Grid container direction="column" spacing={1}>
+      <Grid size={{ xs: 12, sm: 12, md: 12 }}>
         <Box
           sx={{
             display: "flex",

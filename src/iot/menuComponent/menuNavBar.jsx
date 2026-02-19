@@ -27,53 +27,41 @@ export default function MenuNavBar({
     handleMenuChenge(copyStack);
   };
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        "& > :not(style)": {
-          m: 1,
-          width: "100%",
-        },
-      }}
-    >
-      <Card>
-        <CardContent>
-          <Typography variant="h6">
-            CurrentMenu ={" "}
-            {allMenus[menuStackArr[menuStackArr.length - 1]].title}
-          </Typography>
-          <Typography variant="body2">
-            num Of stack {menuStackArr.length}
-          </Typography>
-        </CardContent>
+    <Card>
+      <CardContent>
+        <Typography variant="h6">
+          CurrentMenu = {allMenus[menuStackArr[menuStackArr.length - 1]].title}
+        </Typography>
+        <Typography variant="body2">
+          num Of stack {menuStackArr.length}
+        </Typography>
+      </CardContent>
 
-        <CardActions>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              gap: 1,
-              justifyContent: "left",
-              width: "100%",
-            }}
-          >
-            {menuStackArr.map((menu, index) => {
-              return (
-                <Typography
-                  color="primary"
-                  key={`index ${index}`}
-                  onClick={() => CalculateNewStack(menu)}
-                  sx={{ cursor: "pointer", textDecoration: "underline" }}
-                >
-                  {allMenus[menu].title}/
-                </Typography>
-              );
-            })}
-          </Box>
-        </CardActions>
-      </Card>
-    </Box>
+      <CardActions>
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 1,
+            justifyContent: "flex-start",
+            width: "100%",
+          }}
+        >
+          {menuStackArr.map((menu, index) => {
+            return (
+              <Typography
+                color="primary"
+                key={`index ${index}`}
+                onClick={() => CalculateNewStack(menu)}
+                sx={{ cursor: "pointer", textDecoration: "underline" }}
+              >
+                {allMenus[menu].title}/
+              </Typography>
+            );
+          })}
+        </Box>
+      </CardActions>
+    </Card>
   );
 }
 

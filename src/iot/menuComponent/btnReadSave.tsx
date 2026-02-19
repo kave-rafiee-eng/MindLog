@@ -1,10 +1,18 @@
-import { Button, TextField, Stack } from "@mui/material";
+import { Button, Stack } from "@mui/material";
+
+type BtnReadSaveProps = {
+  disabledRead: boolean;
+  disabledSave: boolean;
+  handleRead: () => void;
+  handleSave: () => void;
+};
+
 export default function BtnReadSave({
   disabledRead,
   disabledSave,
   handleRead,
   handleSave,
-}) {
+}: BtnReadSaveProps) {
   return (
     <Stack
       direction="row"

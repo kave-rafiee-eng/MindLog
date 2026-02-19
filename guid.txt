@@ -1,3 +1,9 @@
 pnpm add react-p5-wrapper
 
 npm install @mui/joy
+
+//------------------
+
+notification bell
+Menu profile
+Accordion 

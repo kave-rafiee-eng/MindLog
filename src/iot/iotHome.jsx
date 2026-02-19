@@ -36,8 +36,8 @@ function Icon(label) {
   }
 }
 export default function IotHome() {
-  //const [menuStack, setMenuStack] = useState(["mainMenu"]);
-  const [menuStack, setMenuStack] = useState(["MenuId_0x803467c"]);
+  const [menuStack, setMenuStack] = useState(["mainMenu"]);
+  //const [menuStack, setMenuStack] = useState(["MenuId_0x803467c"]);
   //console.log(menuStack);
 
   let currentMenu = menuDataJson[menuStack[menuStack.length - 1]];

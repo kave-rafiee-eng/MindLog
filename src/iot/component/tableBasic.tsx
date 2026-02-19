@@ -16,6 +16,7 @@ type ColumnType<RowType = any> = {
   id: keyof RowType;
   label: string | (() => ReactNode);
   minWidth?: number;
+  Width?: number | string;
   align?: "left" | "right" | "center";
   render?: (row: RowType) => ReactNode;
   format?: (value: any) => string;
@@ -70,7 +71,7 @@ export function TableBasic<RowType extends { id: number | string }>({
                   <TableCell
                     key={column.id as string}
                     align={column.align}
-                    sx={{ textAlign: "center" }}
+                    sx={{ textAlign: "center", width: column.Width }}
                   >
                     {column.render
                       ? column.render(row)

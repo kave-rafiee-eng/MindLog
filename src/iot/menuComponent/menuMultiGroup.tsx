@@ -2,21 +2,27 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
+import { Button, TextField, Stack, IconButton, Icon } from "@mui/material";
 
 import { useState, useRef, useEffect, useReducer, useMemo } from "react";
 
 import menuesJson from "../MenuDataJson.json";
 import { currentMenuType, MenuPropsType } from "./currentMenuTypes";
-import { CalculateColorState } from "./genericFn";
 
 import { TableBasic, TableBasicProps } from "../component/tableBasic";
 
 import BtnReadSave from "./btnReadSave";
 
+import SettingsIcon from "@mui/icons-material/Settings";
+import KeyboardDoubleArrowUpIcon from "@mui/icons-material/KeyboardDoubleArrowUp";
+import KeyboardDoubleArrowDownIcon from "@mui/icons-material/KeyboardDoubleArrowDown";
 //Coustom hooks
 import { useFlashReset } from "../hooks/useFlashReset";
 import { useAutoUpdate } from "../hooks/useAutoUpdate";
 import { useSocketStore } from "../socketStore";
+import { IconsManifest } from "react-icons";
+
+import { CalShowValue, CalculateColorState } from "./genericFn";
 
 type menusType = typeof menuesJson;
 
@@ -27,6 +33,7 @@ type settingSelectType = {
 };
 
 type settingNumberType = {
+  offset: number;
   address: number;
   addition: number;
   unit: string;
@@ -44,6 +51,7 @@ type settingType = {
 type stateAddType = {
   stateIndex: number;
   address: number;
+  readOnly: boolean;
 };
 
 type StateType = {
@@ -75,7 +83,7 @@ function extractMenu(menu: currentMenuType, allmenu: menusType): settingType[] {
     //----------Number
     if (item.data?.setting) {
       const setting = item.data.setting;
-      let itemNumber = {
+      let itemNumber: settingNumberType = {
         lable: item.label,
         address: setting.value,
         addition: setting.addition,
@@ -83,6 +91,7 @@ function extractMenu(menu: currentMenuType, allmenu: menusType): settingType[] {
         factor: setting.factor,
         minValue: setting.minValue,
         maxValue: setting.maxValue,
+        offset: setting.offset,
       };
       extract.push({ number: itemNumber });
     }
@@ -100,6 +109,7 @@ function stateAddExtractor(
   result.push({
     address: 1,
     stateIndex: 0,
+    readOnly: true,
   });
   let globalIndex = 1;
   for (const setting of settingBuf) {
@@ -109,6 +119,7 @@ function stateAddExtractor(
       result.push({
         address: baseAddress + i,
         stateIndex: globalIndex + i,
+        readOnly: false,
       });
     }
     globalIndex += numOfFloor;
@@ -122,9 +133,12 @@ export default function MenuMultyGroup({
 }: MenuPropsType) {
   const PCI_Setting = useSocketStore((s) => s.PCI_Setting);
   const stateRef = useRef<stateRefType>({
+    interval: null,
+    speed: 150,
     processRun: false,
     userEngage: false,
     F_userEngage: false,
+    preNof: 0,
   });
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
   const [flash, setFlash] = useFlashReset(false, 500);
@@ -138,6 +152,7 @@ export default function MenuMultyGroup({
   });
 
   const nof = state.valueSetting[0];
+
   const stateAddBuf = stateAddExtractor(setting, nof);
 
   //----------
@@ -151,9 +166,11 @@ export default function MenuMultyGroup({
   const filter = filterOptions[state.filter];
   let settingFilter = setting.find((value) => {
     if (value.select?.lable == filter) return true;
+    else if (value.number?.lable == filter) return true;
     return false;
   });
 
+  //console.log(settingFilter);
   type renderValuesType = {
     stateIndex: number;
     number?: settingNumberType;
@@ -168,22 +185,34 @@ export default function MenuMultyGroup({
   //-----------Creat  Table Rows
   let tableData: MyRow[] = [];
 
-  if (settingFilter?.select) {
-    const startAdd = settingFilter.select?.address ?? 0;
+  if (settingFilter?.select || settingFilter?.number) {
+    const startAdd =
+      settingFilter.select?.address ?? settingFilter.number?.address ?? 0;
     let globalCounter = 0;
     for (let i = 0; i < nof; i++) {
       const Add = startAdd + i;
       const found = stateAddBuf.find((value) => value.address === Add);
       if (found) {
         const indexState = found?.stateIndex;
-        tableData.push({
-          id: globalCounter,
-          floor: i + 1,
-          renderValues: {
-            stateIndex: indexState,
-            select: settingFilter.select,
-          },
-        });
+        if (settingFilter.select) {
+          tableData.push({
+            id: globalCounter,
+            floor: i + 1,
+            renderValues: {
+              stateIndex: indexState,
+              select: settingFilter.select,
+            },
+          });
+        } else if (settingFilter.number) {
+          tableData.push({
+            id: globalCounter,
+            floor: i + 1,
+            renderValues: {
+              stateIndex: indexState,
+              number: settingFilter.number,
+            },
+          });
+        }
         globalCounter++;
       }
     }
@@ -191,14 +220,49 @@ export default function MenuMultyGroup({
 
   const bgColor = useMemo(() => {
     return Array.from({ length: state.valueChenged.length }, (_, index) => {
-      if (flash) return "success.light";
-      else if (stateRef.current.userEngage) {
-        if (state.valueChenged[index]) return "#ffcc80";
-        else return "#fff3e0";
-      } else if (state.commFault) return "error.light";
-      else return "white";
+      return CalculateColorState({
+        flash: flash,
+        userEngage: stateRef.current.userEngage,
+        chnage: state.valueChenged[index],
+        commFault: state.commFault,
+      });
     });
   }, [flash, state, stateRef.current.userEngage, state.commFault]);
+
+  const startChange = (
+    direction: number,
+    index: number,
+    min: number,
+    max: number,
+  ) => {
+    stateRef.current.userEngage = true;
+
+    if (stateRef.current.interval) return;
+    stateRef.current.speed = 500;
+    const run = () => {
+      setState((prev) => {
+        const current = prev.valueSetting[index];
+        let next = current + direction;
+        next = Math.max(min, Math.min(max, next));
+        if (next === current) return prev;
+        const newValueSetting = [...prev.valueSetting];
+        newValueSetting[index] = next;
+        return {
+          ...prev,
+          valueSetting: newValueSetting,
+        };
+      });
+      stateRef.current.speed *= 0.85;
+      stateRef.current.interval = setTimeout(run, stateRef.current.speed);
+    };
+    run();
+  };
+
+  const stopChange = () => {
+    if (stateRef.current.interval != null)
+      clearInterval(stateRef.current.interval);
+    stateRef.current.interval = null;
+  };
 
   const processPCI = async (write: boolean) => {
     if (stateRef.current.processRun) return;
@@ -207,43 +271,60 @@ export default function MenuMultyGroup({
     stateRef.current.processRun = true;
 
     try {
+      const stateAddFilter = stateAddBuf.filter((stateAdd) => {
+        if (!write) return true;
+        if (stateAdd.readOnly === false) return true;
+      });
+
+      //console.log(stateAddFilter.length);
       const res = await PCI_Setting(
-        stateAddBuf.map((stateAdd) => {
+        stateAddFilter.map((stateAdd) => {
           return stateAdd.address;
         }),
-        write ? state.valueSetting : [],
+        write
+          ? stateAddFilter.map((stateAdd) => {
+              return state.valueSetting[stateAdd.stateIndex];
+            })
+          : [],
         write,
         true,
       );
 
-      let newValues: (number | null)[] = Array(stateAddBuf.length).fill(null);
+      /*let newValues: (number | null)[] = Array(state.valueSetting.length).fill(
+        null,
+      );*/
 
-      res.registers.forEach((register) => {
-        const found = stateAddBuf.find((stateAdd) => {
-          if (stateAdd.address == register.add) return true;
-          else return false;
-        });
+      let allRecived = true;
+      let newValues = Array(state.valueSetting.length).fill(null);
+      stateAddFilter.forEach((stateAdd) => {
+        const found = res.registers.find(
+          (register) => register.add === stateAdd.address,
+        );
         if (found) {
-          newValues[found.stateIndex] = register.value;
+          newValues[stateAdd.stateIndex] = found.value;
+        } else {
+          allRecived = false;
+          console.log("allRecived = false;");
         }
       });
 
-      if (
-        newValues.every((val) => val != null) &&
-        newValues.length < state.valueSetting.length
-      ) {
-        setState((prev) => ({
-          ...prev,
-          valueSetting: [
-            ...newValues,
-            ...prev.valueSetting.slice(newValues.length),
-          ],
-          commFault: false,
-          valueChenged: prev.valueChenged.map(() => false),
-        }));
+      //console.log(stateAddFilter);
+      //console.log(res);
+      //console.log(newValues);
+      if (allRecived) {
+        setState((prev) => {
+          for (let i = 0; i < newValues.length; i++) {
+            if (newValues[i] == null) newValues[i] = prev.valueSetting[i];
+          }
+          return {
+            ...prev,
+            valueSetting: [...newValues],
+            commFault: false,
+            valueChenged: prev.valueChenged.map(() => false),
+          };
+        });
+        setFlash(true);
       }
-
-      setFlash(true);
     } catch (err) {
       console.error(err);
       setState((prev) => ({
@@ -254,11 +335,18 @@ export default function MenuMultyGroup({
     stateRef.current.processRun = false;
   };
 
+  if (nof > stateRef.current.preNof) {
+    stateRef.current.preNof = nof;
+    console.log("stateRef.current.preNof");
+    processPCI(false);
+  }
+
   const tableProps: TableBasicProps<MyRow> = {
     columns: [
       {
         id: "floor",
         label: "Floor",
+        Width: "15%",
       },
       {
         id: "renderValues",
@@ -330,6 +418,91 @@ export default function MenuMultyGroup({
                 </Select>
               </FormControl>
             );
+          } else if (row.renderValues.number) {
+            return (
+              <Stack
+                justifyContent="center"
+                direction="row"
+                spacing={0}
+                alignItems="center"
+                sx={{
+                  display: "flex",
+                  width: "100%",
+                  background: "#bfbfbf",
+                }}
+              >
+                <IconButton
+                  onMouseDown={() =>
+                    startChange(
+                      1,
+                      row.renderValues.stateIndex,
+                      row.renderValues.number?.minValue ?? 0,
+                      row.renderValues.number?.maxValue ?? 0,
+                    )
+                  }
+                  onMouseUp={stopChange}
+                  onMouseLeave={stopChange}
+                  onTouchStart={() =>
+                    startChange(
+                      1,
+                      row.renderValues.stateIndex,
+                      row.renderValues.number?.minValue ?? 0,
+                      row.renderValues.number?.maxValue ?? 0,
+                    )
+                  }
+                  onTouchEnd={stopChange}
+                  onTouchCancel={stopChange}
+                  disabled={stateRef.current.processRun}
+                  sx={{ width: "20%" }}
+                  color="error"
+                >
+                  <KeyboardDoubleArrowUpIcon />
+                </IconButton>
+                <TextField
+                  type="number"
+                  value={CalShowValue({
+                    value: state.valueSetting[row.renderValues.stateIndex],
+                    addition: row.renderValues.number.addition ?? 0,
+                    factor: row.renderValues.number.factor ?? 0,
+                    offset: row.renderValues.number.offset ?? 0,
+                  })}
+                  size="small"
+                  sx={{
+                    bgcolor: bgColor,
+                  }}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                />
+                <IconButton
+                  onMouseDown={() =>
+                    startChange(
+                      -1,
+                      row.renderValues.stateIndex,
+                      row.renderValues.number?.minValue ?? 0,
+                      row.renderValues.number?.maxValue ?? 0,
+                    )
+                  }
+                  onMouseUp={stopChange}
+                  onMouseLeave={stopChange}
+                  onTouchStart={() =>
+                    startChange(
+                      -1,
+                      row.renderValues.stateIndex,
+                      row.renderValues.number?.minValue ?? 0,
+                      row.renderValues.number?.maxValue ?? 0,
+                    )
+                  }
+                  onTouchEnd={stopChange}
+                  onTouchCancel={stopChange}
+                  disabled={stateRef.current.processRun}
+                  sx={{ width: "20%" }}
+                  color="error"
+                >
+                  <KeyboardDoubleArrowDownIcon />
+                </IconButton>
+              </Stack>
+            );
           }
           return "row.floor";
         },
@@ -359,4 +532,24 @@ type stateRefType = {
   processRun: boolean;
   userEngage: boolean;
   F_userEngage: boolean;
+  interval: ReturnType<typeof setTimeout> | null;
+  speed: number;
+  preNof: number;
 };
+
+/*
+               <Button
+                  size="small"
+                  variant="contained"
+                  onMouseDown={() => startChange(-1)}
+                onMouseUp={stopChange}
+                onMouseLeave={stopChange}
+                disabled={stateRef.current.processRun}
+                onTouchStart={() => startChange(-1)}
+                onTouchEnd={stopChange}
+                onTouchCancel={stopChange}
+                onTouchMove={stopChange}
+                >
+                  ↓
+                </Button>
+                */

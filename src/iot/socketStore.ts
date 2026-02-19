@@ -226,6 +226,9 @@ export const useSocketStore = create<socketStorType>((set, get) => ({
   },
 
   PCI_Setting: async (addresses, newValues, readOrWrite, enModal) => {
+    if (addresses.length == 0) {
+      throw " Error addresses.length == 0";
+    }
     const inputs = {
       addresses,
       newValues,

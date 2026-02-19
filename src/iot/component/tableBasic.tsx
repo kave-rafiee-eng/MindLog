@@ -14,7 +14,7 @@ import { ReactNode } from "react";
 
 type ColumnType<RowType = any> = {
   id: keyof RowType;
-  label: string;
+  label: string | (() => ReactNode);
   minWidth?: number;
   align?: "left" | "right" | "center";
   render?: (row: RowType) => ReactNode;
@@ -52,7 +52,11 @@ export function TableBasic<RowType extends { id: number | string }>({
                   color: "white",
                 }}
               >
-                <h3>{column.label}</h3>
+                <h3>
+                  {column.label instanceof Function
+                    ? column.label()
+                    : column.label}
+                </h3>
               </TableCell>
             ))}
           </TableRow>

@@ -24,6 +24,7 @@ import MenuOneSelect from "./menuComponent/menuOneSelect";
 import MenuNavBar from "./menuComponent/menuNavBar";
 import { useState } from "react";
 import MenuMultySelect from "./menuComponent/menuMultySelect";
+import MenuMultyGroup from "./menuComponent/menuMultiGroup";
 function Icon(label) {
   switch (label) {
     case "History":
@@ -35,8 +36,8 @@ function Icon(label) {
   }
 }
 export default function IotHome() {
-  const [menuStack, setMenuStack] = useState(["mainMenu"]);
-  //const [menuStack, setMenuStack] = useState(["MenuId_0x8037440"]);
+  //const [menuStack, setMenuStack] = useState(["mainMenu"]);
+  const [menuStack, setMenuStack] = useState(["MenuId_0x803467c"]);
   //console.log(menuStack);
 
   let currentMenu = menuDataJson[menuStack[menuStack.length - 1]];
@@ -87,6 +88,9 @@ export default function IotHome() {
       {currentMenu.type ===
         menuTypes.MENU_TYPE_SETTING_MULTY_SELECT_ONE_STAGE && (
         <MenuMultySelect currentMenu={currentMenu} allMenu={menuDataJson} />
+      )}
+      {currentMenu.type === menuTypes.MENU_TYPE_SETTING_MULTY_GROUP && (
+        <MenuMultyGroup currentMenu={currentMenu} allMenu={menuDataJson} />
       )}
     </>
   );

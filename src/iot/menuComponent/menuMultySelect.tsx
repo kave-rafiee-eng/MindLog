@@ -16,18 +16,12 @@ import BtnReadSave from "./btnReadSave";
 import { useFlashReset } from "../hooks/useFlashReset";
 import { useAutoUpdate } from "../hooks/useAutoUpdate";
 
+import { currentMenuType, MenuPropsType } from "./currentMenuTypes";
 import menuesJson from "../MenuDataJson.json";
 
 import { TableBasic, TableBasicProps } from "../component/tableBasic";
 
 type menusType = typeof menuesJson;
-
-type settingType = {
-  addresses: number[];
-  numItems: number;
-  options: string[];
-  itemLabels: string[];
-};
 
 type StateType = {
   valueChenged: boolean[];
@@ -41,61 +35,68 @@ type stateRefType = {
   F_userEngage: boolean;
 };
 
-function ExtractMenu(menu: currentMenuType, allMenu: menusType): settingType {
-  let setting: settingType = {
-    addresses: [],
-    numItems: 0,
-    options: [],
-    itemLabels: [],
-  };
+type settingType = {
+  addresses: number[];
+  options: string[];
+  itemLabels: string[];
+};
 
-  let item = menu.items.find(
-    (item) => item.type === menuTypes.ITEM_TYPE_SETTING_MULTY_SELECT_ONE_STAGE,
-  );
+function ExtractMenu(
+  menu: currentMenuType,
+  allMenu: menusType,
+): settingType | false {
+  for (const item of menu.items) {
+    if (item.data?.MselectOne) {
+      const MselectOne = item.data.MselectOne;
 
-  setting.numItems = item?.data.MselectOne.numItems ?? 0;
-  const startAdd: number = item?.data.MselectOne.values ?? 0;
+      let numItems = MselectOne.numItems;
+      let startAdd = MselectOne.values;
+      let addresses = Array.from({ length: numItems }, (_, index) => {
+        return startAdd + index;
+      });
 
-  setting.addresses = Array.from({ length: setting.numItems }, (_, index) => {
-    return startAdd + index;
-  });
+      let options: string[] = [];
+      if (MselectOne.options in allMenu) {
+        options = allMenu[
+          MselectOne.options as keyof typeof allMenu
+        ] as string[];
+      }
 
-  if (
-    Array.isArray(
-      allMenu[item?.data.MselectOne.options as keyof typeof allMenu],
-    )
-  ) {
-    setting.options = allMenu[
-      item?.data.MselectOne.options as keyof typeof allMenu
-    ] as string[];
+      let itemLabels: string[] = [];
+      if (MselectOne.itemLabels in allMenu) {
+        itemLabels = allMenu[
+          MselectOne.itemLabels as keyof typeof allMenu
+        ] as string[];
+      }
+
+      return {
+        addresses: (addresses = Array.from({ length: numItems }, (_, index) => {
+          return startAdd + index;
+        })),
+        options: options,
+        itemLabels: itemLabels,
+      };
+    }
   }
-
-  if (
-    Array.isArray(
-      allMenu[item?.data.MselectOne.itemLabels as keyof typeof allMenu],
-    )
-  ) {
-    setting.itemLabels = allMenu[
-      item?.data.MselectOne.itemLabels as keyof typeof allMenu
-    ] as string[];
-  }
-
-  return setting;
+  return false;
 }
 
 export default function MenuMultySelect({
   currentMenu,
   allMenu,
-}: MenuMultySelectPropType) {
+}: MenuPropsType) {
   const PCI_Setting = useSocketStore((s) => s.PCI_Setting);
 
   const setting = useMemo(() => {
     return ExtractMenu(currentMenu, allMenu);
   }, [currentMenu, allMenu]);
 
+  let sizeArr = 0;
+  if (typeof setting != "boolean") sizeArr = setting.addresses.length;
+
   const [state, setState] = useState<StateType>({
-    valueChenged: Array(setting?.itemLabels?.length ?? 0).fill(0),
-    valueSetting: Array(setting?.itemLabels?.length ?? 0).fill(0),
+    valueChenged: Array(sizeArr).fill(0),
+    valueSetting: Array(sizeArr).fill(0),
     commFault: false,
   });
 
@@ -118,6 +119,23 @@ export default function MenuMultySelect({
       else return "white";
     });
   }, [flash, state, stateRef.current.userEngage, state.commFault]);
+
+  useAutoUpdate({
+    ProcessRead: () => {
+      processPCI(false);
+    },
+    StopFn: () => {
+      return stateRef.current.userEngage || stateRef.current.processRun;
+    },
+    max: 10,
+  });
+
+  if (typeof setting == "boolean")
+    return (
+      <>
+        <h3>extractMenu Error</h3>
+      </>
+    );
 
   const processPCI = async (write: boolean) => {
     if (stateRef.current.processRun) return;
@@ -255,110 +273,3 @@ export default function MenuMultySelect({
     </>
   );
 }
-
-type MenuMultySelectPropType = {
-  currentMenu: currentMenuType;
-  allMenu: menusType;
-};
-
-type MenuItemDataType = {
-  MselectOne: {
-    values: number;
-    def: number;
-    numOptions: number;
-    numItems: number;
-    options: string;
-    itemLabels: string;
-  };
-};
-
-type MenuItemType = {
-  label: string;
-  type: number;
-  data: MenuItemDataType;
-};
-
-type currentMenuType = {
-  type: number;
-  title: string;
-  items: MenuItemType[];
-  itemCount: number;
-};
-
-/*
-type SubmenuData = {
-  submenu: Menu;
-};
-
-type CustomFunctionData = {
-  costonFunction: (self: Menu) => void;
-};
-
-type MultiGroupPropertyData = {
-  numOfGroup: number[];
-};
-
-type ShowOptionsData = {
-  offset: number;
-  factor: number;
-  addition: number;
-  step: number;
-};
-
-type SettingData = {
-  value: number[];
-  minValue: number;
-  maxValue: number;
-  def: number[];
-  offset: number;
-  factor: number;
-  addition: number;
-  unit: string; // unit[3] → string
-};
-
-type SettingOptionData = {
-  value: number[];
-  options: string[];
-  numOptions: number;
-  DynamicNumOptions?: number[];
-  def?: number[];
-};
-
-type MselectOneData = {
-  def?: number[];
-  values?: number[];
-  numItems?: number;
-  itemLabels?: string[];
-  options?: string[];
-  numOptions?: number;
-  preventDuplicateSelection?: boolean;
-};
-
-type MenuItem = {
-  label: string;
-  type: MenuItemType;
-
-  disConditionItem?: number[]; // uint8_t* → number[]
-  disTriggerItem?: number[];
-  VisMode: VIS_MODE;
-
-  runValue?: number[];
-
-  data?:
-    | SubmenuData
-    | CustomFunctionData
-    | MultiGroupPropertyData
-    | ShowOptionsData
-    | SettingData
-    | SettingOptionData
-    | MselectOneData;
-};
-
-type Menu = {
-  type: MenuItemType;
-  title: string;
-  items: MenuItem[];
-  itemCount: number;
-};
-
-*/

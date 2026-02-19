@@ -8,10 +8,10 @@ import React from "react";
 
 type CardSettingProps = {
   title: string;
-  Child: React.ComponentType;
+  children: React.ReactNode;
 };
 
-export default function CardSetting({ title, Child }: CardSettingProps) {
+export default function CardSetting({ title, children }: CardSettingProps) {
   React.useEffect(() => {
     console.log("CardSetting---------------");
   }, []);
@@ -26,12 +26,22 @@ export default function CardSetting({ title, Child }: CardSettingProps) {
               m: 1,
               width: "100%",
             },
+            background: "#dfdbdb",
           }}
         >
           <Card>
             <CardContent>
-              <Typography variant="h6">{title}</Typography>
-              <Typography variant="body2">--</Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  background: "#e6e3e3",
+                  alignItems: "center",
+                  alignContent: "center",
+                }}
+              >
+                <Typography variant="h6">{title}</Typography>
+              </Box>
             </CardContent>
 
             <CardActions>
@@ -42,9 +52,13 @@ export default function CardSetting({ title, Child }: CardSettingProps) {
                   gap: 1,
                   justifyContent: "center",
                   width: "100%",
+                  //background: "#b1b1b1",
+                  m: 1,
+                  py: 2,
+                  alignItems: "center",
                 }}
               >
-                <Child />
+                {children}
               </Box>
             </CardActions>
           </Card>

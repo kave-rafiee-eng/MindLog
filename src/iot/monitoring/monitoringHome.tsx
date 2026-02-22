@@ -12,7 +12,6 @@ import KeyboardDoubleArrowUpIcon from "@mui/icons-material/KeyboardDoubleArrowUp
 import KeyboardDoubleArrowDownIcon from "@mui/icons-material/KeyboardDoubleArrowDown";
 import { ReactNode } from "react";
 import { JSX } from "react";
-import Section from "./section";
 
 import { registerType, picMonitorType } from "./types";
 
@@ -25,43 +24,38 @@ type scrolRefType = {
 type pageBufType = {
   branch: string;
   order: number;
-  component: "Section";
+  component: "SecHome" | "SecLocation";
 };
 
-import { useCounterStore } from "./monitorStor";
+import { useMonitorStore } from "./monitorStor";
+import { Segment } from "./monitorComponent/segment";
+
+import SecHome from "./sections/secHome";
+import SecLocation from "./sections/secLocation";
 
 export default function FullPageScroll() {
-  const sendSim = useCounterStore((state) => state.send);
-  const ResetMonitorData = useCounterStore((state) => state.ResetMonitorData);
-  const AddReadRegister = useCounterStore((state) => state.AddReadRegister);
+  const MonitorPciProcess = useMonitorStore((state) => state.MonitorPciProcess);
+  const ResetMonitorData = useMonitorStore((state) => state.ResetMonitorData);
 
-  const statePciRef = useRef<picMonitorType>({
-    registers: [],
-    commFault: false,
-  });
+  useEffect(() => {
+    //ResetMonitorData(5);
+  }, []);
 
-  console.log("render 11111");
+  const AddReadRegister = useMonitorStore((state) => state.AddReadRegister);
+
+  console.log("FullPageScroll ---");
   const sectionsRef = useRef<(HTMLDivElement | null)[]>([]);
-
-  const handleSetReadRegister = (addresses: number[]) => {
-    statePciRef.current.registers = addresses.map((add) => {
-      return {
-        add: add,
-        value: 0,
-      };
-    });
-  };
 
   const pageBuf = useRef<pageBufType[]>([
     {
       branch: "a",
       order: 0,
-      component: "Section",
+      component: "SecHome",
     },
     {
       branch: "a",
       order: 1,
-      component: "Section",
+      component: "SecLocation",
     },
   ]);
 
@@ -85,9 +79,6 @@ export default function FullPageScroll() {
       const scrollY = container.scrollTop;
       const sectionHeight = container.clientHeight;
       scrolRef.current.activeIndex = Math.round(scrollY / sectionHeight);
-
-      //increment();
-      //console.log("Scroll Y:", scrollY, "Active Index:", value);
     }, 150);
   };
 
@@ -105,7 +96,7 @@ export default function FullPageScroll() {
       }}
     >
       <Grid
-        size={{ xs: 12, sm: 12, md: 4, lg: 4, xl: 4 }}
+        size={{ xs: 12, sm: 12, md: 6, lg: 6, xl: 6 }}
         direction={"column"}
         sx={{
           display: "flex",
@@ -129,8 +120,11 @@ export default function FullPageScroll() {
           {pageBuf.current.map((section, index) => {
             let ComponentToRender;
             switch (section.component) {
-              case "Section":
-                ComponentToRender = Section;
+              case "SecLocation":
+                ComponentToRender = SecLocation;
+                break;
+              case "SecHome":
+                ComponentToRender = SecHome;
                 break;
             }
             return (
@@ -160,18 +154,7 @@ export default function FullPageScroll() {
           <Button
             variant="contained"
             onClick={() => {
-              /*statePciRef.current = {
-                registers: [
-                  {
-                    value: 1,
-                    add: 0,
-                  },
-                ],
-                commFault: false,
-              };
-              console.log(statePciRef.current);*/
-              //AddReadRegister(scrolRef.current.activeIndex, [0, 1, 2, 3]);
-              sendSim(scrolRef.current.activeIndex, 0);
+              MonitorPciProcess(scrolRef.current.activeIndex);
             }}
           >
             set State
@@ -185,61 +168,3 @@ export default function FullPageScroll() {
     </Grid>
   );
 }
-
-/*
-      setStatePci((prev) => {
-        return {
-          ...prev,
-        };
-      }));
-  /*const [statePci, setStatePci] = useState<picMonitorType>({
-    registers: [],
-    commFault: false,
-  });
-  const [Snap, setSnap] = useState(0);*/
-
-/*
-  useEffect(() => {
-    //console.log(containerRef.current);
-    if (containerRef.current != null) {
-      sectionsRef.current.forEach((el, index) => {
-        if (!el) return;
-
-        const rect = el.getBoundingClientRect();
-        console.log({
-          index,
-          tag: el.tagName,
-          id: el.id || null,
-          classList: [...el.classList],
-          x: rect.x,
-          y: rect.y,
-          width: rect.width,
-          height: rect.height,
-        });
-      });
-    }
-  }, []);
-          <IconButton onClick={() => scrollToSection()}>
-            <KeyboardDoubleArrowUpIcon />
-          </IconButton>
-
-                    <Section color="#ff6b6b" />
-          <Section color="#4ecdc4" />
-          <Section color="#1a535c" />
-          <Section color="blue" />
-          <Section color="#ffe66d" />
-        */
-type sec = {
-  color: string;
-};
-
-import { forwardRef } from "react";
-import { Key } from "@mui/icons-material";
-
-type SectionProps = {
-  color: string;
-};
-
-/*
-
-*/

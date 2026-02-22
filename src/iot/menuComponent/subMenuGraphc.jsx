@@ -44,6 +44,7 @@ export default function SubMenuGraphic({
           .filter((item) => item.type === menuTypes.ITEM_TYPE_SUBMENU_GRAPHC)
           .map((item, index) => (
             <Button
+              size="large"
               key={index}
               variant="contained"
               onClick={() =>
@@ -62,6 +63,7 @@ export default function SubMenuGraphic({
           .filter((item) => item.type === menuTypes.MENU_TYPE_SUBMENU)
           .map((item, index) => (
             <Button
+              size="large"
               key={index}
               variant="contained"
               onClick={() => handleSubMenuClick(item.data.submenu)}

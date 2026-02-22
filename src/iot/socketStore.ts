@@ -13,7 +13,7 @@ const PCI_TYPE = {
 
 type Listener = (data: any) => void;
 
-type registerAddValueType = {
+export type registerAddValueType = {
   add: number;
   value: number;
 };
@@ -35,7 +35,9 @@ type socketStorType = {
   connected: boolean;
   listeners: Listener[];
 
+  _manualDisconnect: boolean;
   connect: () => void;
+  disconnect: () => void;
   send: (data: Uint8Array) => void;
   subscribe: (callback: Listener) => () => void;
 
@@ -70,7 +72,48 @@ export const useSocketStore = create<socketStorType>((set, get) => ({
   connected: false,
   listeners: [],
 
+  _manualDisconnect: false,
   connect: () => {
+    set({ _manualDisconnect: true });
+    if (get().socket) return;
+
+    const ws = new WebSocket("ws://localhost:3001");
+    ws.binaryType = "arraybuffer";
+
+    ws.onopen = () => {
+      console.log("WS connected");
+      set({ connected: true });
+    };
+
+    ws.onclose = () => {
+      console.log("WS disconnected");
+      set({ connected: false, socket: null });
+      if (!get()._manualDisconnect) {
+        setTimeout(() => {
+          console.log("Reconnect");
+          get().connect();
+        }, 2000);
+      }
+    };
+
+    ws.onmessage = (event) => {
+      const data = event.data;
+      get().listeners.forEach((cb) => cb(data));
+    };
+
+    set({ socket: ws, _manualDisconnect: false });
+  },
+
+  disconnect: () => {
+    const socket = get().socket;
+    set({ _manualDisconnect: true });
+    if (socket) {
+      socket.close();
+      set({ socket: null, connected: false });
+      console.log("WS manually disconnected");
+    }
+  },
+  /*connect: () => {
     if (get().socket) return;
 
     //const ws = new WebSocket("ws://192.168.137.1:3001");
@@ -98,7 +141,7 @@ export const useSocketStore = create<socketStorType>((set, get) => ({
     };
 
     set({ socket: ws });
-  },
+  },*/
 
   send: (data) => {
     const ws = get().socket;
@@ -163,7 +206,6 @@ export const useSocketStore = create<socketStorType>((set, get) => ({
           );
 
           if (reciveCrc === crc) {
-            console.log("CRC Ok");
             resolved = true;
             unsubscribe();
             const reciveData: reciveDataType = {
@@ -189,11 +231,11 @@ export const useSocketStore = create<socketStorType>((set, get) => ({
             resolve(reciveData);
           } else {
             console.log(resArray);
-            console.log(`Crc Failed R: ${reciveCrc} / ${crc} `);
+            console.error(`Crc Failed R: ${reciveCrc} / ${crc} `);
           }
         } else {
           console.log(resArray);
-          console.log(`Data Format Wrong : ${resArray.length} `);
+          console.error(`Data Format Wrong : ${resArray.length} `);
         }
       });
 

@@ -8,6 +8,9 @@ import LanguageSelector from "./languageSelect";
 
 import { styled, useTheme } from "@mui/material/styles";
 
+import LogoutIcon from "@mui/icons-material/Logout";
+import { useLoginStore } from "../login/loginStor";
+
 const drawerWidth = "100%";
 
 const AppBar = styled(MuiAppBar, {
@@ -34,6 +37,8 @@ const AppBar = styled(MuiAppBar, {
 }));
 
 export default function MyAppBar({ open, handleDrawerOpen }) {
+  const setLogin = useLoginStore((state) => state.setLogin);
+
   return (
     <>
       <CssBaseline />
@@ -59,6 +64,8 @@ export default function MyAppBar({ open, handleDrawerOpen }) {
             alignItems={"center"}
             sx={{
               marginBottom: 1,
+              display: "flex",
+              width: "100%",
             }}
           >
             <IconButton
@@ -76,6 +83,10 @@ export default function MyAppBar({ open, handleDrawerOpen }) {
               <MenuIcon />
             </IconButton>
             <LanguageSelector />
+
+            <IconButton sx={{ ml: "auto" }} onClick={() => setLogin(false)}>
+              <LogoutIcon />
+            </IconButton>
           </Stack>
         </Toolbar>
       </AppBar>

@@ -1,52 +1,63 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import IotHome from "./iotHome";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { ThemeProvider } from "@mui/material/styles";
+import theme from "./theme";
 
-import IotNavBar from "./iotNavBar";
-import NumberInput from "./menuComponent/menuOneParameter";
+import IotHome from "./iotHome";
 
 import { useSocketStore } from "./socketStore";
 import { useEffect } from "react";
 import BasicModal from "./component/modal";
-import { useState } from "react";
 
-import { Button, TextField, Stack, Drawer } from "@mui/material";
-import Snackbar from "@mui/material/Snackbar";
-import Alert from "@mui/material/Alert";
-
-import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
-import LinearProgress from "@mui/material/LinearProgress";
-import MiniDrawer from "./miniDrawer";
-import MyAppBar from "./component/AppBar";
-import Typography from "@mui/material/Typography";
 
 import { useTranslation } from "react-i18next";
 import FullPageScroll from "./monitoring/monitoringHome";
+import { SnackBarPci } from "./component/snackBarPci";
+import DrawewrBar from "./drawerBar";
+import LoginPage from "./login/login";
+import { useLoginStore } from "./login/loginStor";
 
 function AppIot() {
+  console.log("AppIot----");
   const { t } = useTranslation();
 
   const connect = useSocketStore((s) => s.connect);
-  const connected = useSocketStore((s) => s.connected);
-  const SetCommModalState = useSocketStore((s) => s.SetCommModalState);
+  const disconnect = useSocketStore((s) => s.disconnect);
+  const connectionType = useLoginStore((s) => s.connectionType);
 
-  const [commModal, setCommModal] = useState({
-    open: false,
-    severity: "warning",
-    title: "",
-  });
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isLogin = useLoginStore((s) => s.isLogin);
 
-  SetCommModalState(setCommModal);
+  if (isLogin != true && location.pathname != "/login") navigate("/login");
+
+  //const connected = useSocketStore((s) => s.connected);
+  //
 
   useEffect(() => {
-    connect();
-    //PciSend();
+    if (connectionType == "ws") {
+      connect();
+    } else {
+      disconnect();
+    }
   });
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
   return (
-    <>
+    <ThemeProvider theme={theme}>
+      <SnackBarPci />
+      {/*<BasicModal
+        open={!connected}
+        handleCloseBtn={() => {}}
+        title={"Cooecting to Ws..."}
+        body={"please Wait"}
+      />*/}
+
       <Box
         sx={{
           position: "relative",
@@ -66,11 +77,7 @@ function AppIot() {
             t: 0,
           }}
         >
-          <MyAppBar
-            handleDrawerOpen={() => setDrawerOpen(true)}
-            open={drawerOpen}
-          />
-          <MiniDrawer setOpen={setDrawerOpen} open={drawerOpen} />
+          <DrawewrBar />
         </Box>
 
         <Box
@@ -97,56 +104,13 @@ function AppIot() {
               <Route path="/" element={<IotHome />} />
               <Route path="/setting" element={<IotHome />} />
               <Route path="/monitornig" element={<FullPageScroll />} />
+              <Route path="/login" element={<LoginPage />} />
             </Routes>
           </Box>
         </Box>
       </Box>
-    </>
+    </ThemeProvider>
   );
 }
 
 export default AppIot;
-
-/*
-        <Typography sx={{ marginBottom: 2 }}>
-          {t("welcomeMess", { user: "kave" })}
-        </Typography>
-*/
-/*
-      <Snackbar
-        open={commModal.open}
-        autoHideDuration={6000}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        onClose={() => {}}
-      >
-        <Alert
-          onClose={() => {}}
-          severity={commModal.severity}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
-          {commModal.title}
-          {commModal.severity === "warning" && <LinearProgress />}
-        </Alert>
-      </Snackbar>
-
-      <BasicModal
-        open={false}
-        handleCloseBtn={() => {}}
-        title={"Delvice..."}
-        body={"please Wait"}
-      />
-
-      <BasicModal
-        open={!connected}
-        handleCloseBtn={() => {}}
-        title={"Cooecting to Ws..."}
-        body={"please Wait"}
-      />
-      */
-/*
-      {<IotNavBar />}
-      <Routes>
-        <Route path="/" element={<IotHome />} />
-        <Route path="/test" element={<MiniDrawer />} />
-      </Routes>*/

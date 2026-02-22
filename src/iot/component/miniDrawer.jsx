@@ -18,11 +18,11 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import MuiDrawer from "@mui/material/Drawer";
 
-import i18n from "./utils/i18next";
+import i18n from "../utils/i18next";
 import { useTranslation } from "react-i18next";
 import { Icon, Stack } from "@mui/material";
-import LanguageSelector from "./component/languageSelect";
-import IotHome from "./iotHome";
+import LanguageSelector from "./languageSelect";
+import IotHome from "../iotHome";
 
 import MonitorIcon from "@mui/icons-material/Monitor";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -104,23 +104,64 @@ export default function MiniDrawer({ open, setOpen }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const makeIcon = (IconComponent, path) => (
-    <Icon>
-      <IconComponent
-        color={location.pathname === path ? "error" : "action"}
-        onClick={() => navigate(path)}
+  const makeIcon = (IconComponent, text, path) => (
+    <ListItemButton
+      onClick={() => navigate(path)}
+      sx={[
+        {
+          minHeight: 48,
+          px: 2.5,
+        },
+        open
+          ? {
+              justifyContent: "initial",
+            }
+          : {
+              justifyContent: "center",
+            },
+      ]}
+    >
+      <ListItemIcon
+        sx={[
+          {
+            minWidth: 0,
+            justifyContent: "center",
+          },
+          open
+            ? {
+                mr: 3,
+              }
+            : {
+                mr: "auto",
+              },
+        ]}
+      >
+        <Icon color={location.pathname === path ? "error" : "action"}>
+          <IconComponent />
+        </Icon>
+      </ListItemIcon>
+      <ListItemText
+        primary={text}
+        sx={[
+          open
+            ? {
+                opacity: 1,
+              }
+            : {
+                opacity: 0,
+              },
+        ]}
       />
-    </Icon>
+    </ListItemButton>
   );
   let routsArr = [
     {
-      text: t("setting", { user: "kave" }),
-      icon: () => makeIcon(SettingsIcon, "/setting"),
+      icon: () =>
+        makeIcon(SettingsIcon, t("setting", { user: "kave" }), "/setting"),
     },
     {
-      text: t("monitoring", { user: "kave" }),
-      icon: () => makeIcon(MonitorIcon, "/monitornig"),
-      rout: "monitoring",
+      icon: () =>
+        makeIcon(MonitorIcon, t("monitornig", { user: "kave" }), "/monitornig"),
     },
   ];
   return (
@@ -138,51 +179,7 @@ export default function MiniDrawer({ open, setOpen }) {
         <List>
           {routsArr.map((rout, index) => (
             <ListItem key={index} disablePadding sx={{ display: "block" }}>
-              <ListItemButton
-                sx={[
-                  {
-                    minHeight: 48,
-                    px: 2.5,
-                  },
-                  open
-                    ? {
-                        justifyContent: "initial",
-                      }
-                    : {
-                        justifyContent: "center",
-                      },
-                ]}
-              >
-                <ListItemIcon
-                  sx={[
-                    {
-                      minWidth: 0,
-                      justifyContent: "center",
-                    },
-                    open
-                      ? {
-                          mr: 3,
-                        }
-                      : {
-                          mr: "auto",
-                        },
-                  ]}
-                >
-                  {rout.icon()}
-                </ListItemIcon>
-                <ListItemText
-                  primary={rout.text}
-                  sx={[
-                    open
-                      ? {
-                          opacity: 1,
-                        }
-                      : {
-                          opacity: 0,
-                        },
-                  ]}
-                />
-              </ListItemButton>
+              {rout.icon()}
             </ListItem>
           ))}
         </List>
